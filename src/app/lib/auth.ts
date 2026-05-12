@@ -23,21 +23,26 @@ export async function createSession(user: SessionUser) {
   const cookieStore = await cookies();
   cookieStore.set('session', session, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    expires: expiresAt,
+    secure: process.env.NODE_ENV === 'production', // true di production
     sameSite: 'lax',
     path: '/',
+    maxAge: 60 * 60 * 24 * 7, // 7 hari dalam detik
   });
 }
 
 export async function getSession(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const session = cookieStore.get('session')?.value;
+  
+  console.log('Session cookie exists:', !!session);
+  console.log('Environment:', process.env.NODE_ENV);
+  
   if (!session) return null;
   
   try {
     const { payload } = await jwtVerify(session, encodedKey);
-    // Type assertion dengan validasi
+    console.log('Session verified for user:', payload);
+    
     const userPayload = payload as JWTPayload;
     if (userPayload.id && userPayload.username && userPayload.email) {
       return {
@@ -56,7 +61,7 @@ export async function getSession(): Promise<SessionUser | null> {
 export async function logout() {
   const cookieStore = await cookies();
   cookieStore.delete('session');
-  redirect('/');
+  redirect('/login');
 }
 
 export async function requireAuth() {
